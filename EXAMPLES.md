@@ -158,3 +158,47 @@ jobs:
       manifest: deploy/k8s.yaml
       image_tag: ${{ git.sha }}
 ```
+
+## 6. Rust (Cargo Build & Cache)
+Example for a Rust project with testing and binary building.
+
+```yaml
+name: rust-app
+on:
+  push: { branches: [main] }
+
+jobs:
+  test:
+    image: rust:1.80-slim
+    steps:
+      - name: Unit Tests
+        run: cargo test
+
+  build:
+    image: rust:1.80-slim
+    needs: [test]
+    steps:
+      - name: Build Release
+        run: cargo build --release
+```
+
+## 7. Monorepo (Path Filtering)
+Example for a monorepo where you only want to run jobs if specific directories change. Note: Forge currently triggers on all pushes, but you can use shell logic for filtering.
+
+```yaml
+name: monorepo-service
+on:
+  push: { branches: [main] }
+
+jobs:
+  service-a:
+    image: node:20-alpine
+    steps:
+      - name: Check Changes
+        run: |
+          if git diff --name-only ${{ git.before }} ${{ git.sha }} | grep "^services/a/"; then
+            cd services/a && npm install && npm test
+          else
+            echo "No changes in Service A, skipping."
+          fi
+```

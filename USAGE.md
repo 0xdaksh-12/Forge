@@ -169,3 +169,29 @@ If you have `golangci-lint` installed, you can run:
 golangci-lint run
 ```
 This will check for style consistency, potential bugs, and performance issues using the rules defined in `.golangci.yml`.
+
+---
+
+## 9. Troubleshooting
+
+### Build stays in "Pending"
+- Ensure the Forge server has enough resources.
+- Check if the Docker socket is correctly mounted and accessible.
+- Verify the orchestrator is running (check backend logs for "Orchestrator started").
+
+### Docker jobs fail with "Permission Denied"
+- Forge needs to talk to the Docker daemon. Ensure the user running Forge is in the `docker` group or that the socket permissions allow access.
+
+### Kubernetes deployment fails
+- Ensure the `FORGE_KUBECONFIG` environment variable points to a valid config.
+- Verify that the Forge server has network access to your cluster's API server.
+
+### Logs are not streaming in real-time
+- SSE requires a direct connection. If you are using a proxy (like Nginx), ensure it supports long-lived connections and has buffering disabled:
+  ```nginx
+  proxy_set_header Connection '';
+  proxy_http_version 1.1;
+  chunked_transfer_encoding off;
+  proxy_buffering off;
+  cache_control off;
+  ```

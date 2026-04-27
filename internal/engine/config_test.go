@@ -62,3 +62,21 @@ func TestTopologicalLayers(t *testing.T) {
 		t.Errorf("layer 1 mismatch: %v", layers[1])
 	}
 }
+
+func BenchmarkTopologicalLayers(b *testing.B) {
+	// Setup a complex graph
+	jobs := make(map[string]JobConfig)
+	for i := 0; i < 100; i++ {
+		name := string(rune('A' + i))
+		needs := []string{}
+		if i > 0 {
+			needs = append(needs, string(rune('A' + i - 1)))
+		}
+		jobs[name] = JobConfig{Needs: needs}
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = TopologicalLayers(jobs)
+	}
+}

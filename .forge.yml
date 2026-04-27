@@ -1,0 +1,36 @@
+name: forge-ci
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  lint:
+    image: golang:1.23-alpine
+    steps:
+      - name: Vet
+        run: go vet ./...
+
+  test:
+    image: golang:1.23-alpine
+    needs: [lint]
+    steps:
+      - name: Run tests
+        run: go test ./... -count=1
+
+  build-web:
+    image: node:22-alpine
+    steps:
+      - name: Install deps
+        run: cd web && npm install -g pnpm && pnpm install
+      - name: Build frontend
+        run: cd web && pnpm build
+
+  build-binary:
+    image: golang:1.23-alpine
+    needs: [test, build-web]
+    steps:
+      - name: Build
+        run: go build -ldflags="-s -w" -o bin/forge ./cmd/forge
+      - name: Docker image
+        run: docker build -t forge:${{ git.sha }} .

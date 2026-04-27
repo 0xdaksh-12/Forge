@@ -10,9 +10,7 @@ export function Sidebar() {
     <aside className="sidebar">
       <div className="sidebar-logo">
         <div className="sidebar-logo-icon">
-          <span className="material-icons" style={{ fontSize: "20px" }}>
-            precision_manufacturing
-          </span>
+          <img src="/logo.png" alt="Forge" style={{ width: "24px", height: "24px", objectFit: "contain" }} />
         </div>
         <div className="sidebar-logo-text">
           <span>Forge</span>

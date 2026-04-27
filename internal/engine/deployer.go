@@ -39,6 +39,10 @@ func NewDeployer(kubeconfigPath string) (*Deployer, error) {
 		// Fall back to kubeconfig file.
 		loadRules := clientcmd.NewDefaultClientConfigLoadingRules()
 		if kubeconfigPath != "" {
+			fmt.Printf("Kubernetes: Attempting to load config from %s\n", kubeconfigPath)
+			if _, err := os.Stat(kubeconfigPath); err != nil {
+				fmt.Printf("Kubernetes Error: File not found at %s: %v\n", kubeconfigPath, err)
+			}
 			loadRules.ExplicitPath = kubeconfigPath
 		}
 		cfg, err = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(

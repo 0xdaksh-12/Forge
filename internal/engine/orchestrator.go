@@ -34,7 +34,7 @@ type Orchestrator struct {
 	hub      *stream.Hub
 	cfg      *config.Config
 	runner   *Runner
-	deployer *Deployer
+	deployer IDeployer
 
 	queue  chan BuildRequest
 	cancel context.CancelFunc
@@ -49,11 +49,13 @@ func NewOrchestrator(database *gorm.DB, hub *stream.Hub, cfg *config.Config) *Or
 		os.Exit(1)
 	}
 
-	var deployer *Deployer
-	deployer, err = NewDeployer(cfg.KubeconfigPath)
+	var deployer IDeployer
+	realDeployer, err := NewDeployer(cfg.KubeconfigPath)
 	if err != nil {
-		// Non-fatal — Kubernetes deploy steps will be skipped.
-		slog.Warn("k8s deployer unavailable", "error", err)
+		slog.Warn("k8s deployer unavailable, switching to mock mode", "error", err)
+		deployer = &MockDeployer{}
+	} else {
+		deployer = realDeployer
 	}
 
 	return &Orchestrator{

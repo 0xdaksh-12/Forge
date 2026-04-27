@@ -16,10 +16,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// IDeployer defines the interface for applying manifests.
+type IDeployer interface {
+	Apply(ctx context.Context, manifestPath, namespace, imageTag string) error
+}
+
 // Deployer applies Kubernetes manifests with image tag substitution.
 type Deployer struct {
 	dynClient dynamic.Interface
 }
+
 
 // NewDeployer creates a Deployer. It prefers in-cluster config, then falls
 // back to the provided kubeconfig path (or KUBECONFIG env).
@@ -109,4 +115,11 @@ func gvrForKind(gvk schema.GroupVersionKind) (schema.GroupVersionResource, error
 	default:
 		return schema.GroupVersionResource{}, fmt.Errorf("unsupported kind %q — add it to gvrForKind()", gvk.Kind)
 	}
+}
+
+// MockDeployer is used when no real Kubernetes config is available.
+type MockDeployer struct{}
+
+func (m *MockDeployer) Apply(ctx context.Context, manifestPath, namespace, imageTag string) error {
+	return fmt.Errorf("kubernetes deployer is in MOCK mode (no config found) — would apply %s to %s with tag %s", manifestPath, namespace, imageTag)
 }

@@ -11,6 +11,13 @@ import (
 	"gorm.io/gorm"
 )
 
+// handleHealth godoc
+// @Summary Health check
+// @Description Check if the service and database are reachable
+// @Tags System
+// @Produce json
+// @Success 200 {object} map[string]string
+// @Router /health [get]
 func handleHealth(database *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sqlDB, _ := database.DB()
@@ -22,6 +29,13 @@ func handleHealth(database *gorm.DB) http.HandlerFunc {
 	}
 }
 
+// handleStats godoc
+// @Summary System statistics
+// @Description Get counts of pipelines, builds, and queue status
+// @Tags System
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /stats [get]
 func handleStats(database *gorm.DB, orch *engine.Orchestrator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var stats struct {
@@ -39,6 +53,14 @@ func handleStats(database *gorm.DB, orch *engine.Orchestrator) http.HandlerFunc 
 }
 
 
+// listPipelines godoc
+// @Summary List pipelines
+// @Description Retrieve all registered pipelines
+// @Tags Pipelines
+// @Produce json
+// @Success 200 {array} db.Pipeline
+// @Security ApiKeyAuth
+// @Router /pipelines [get]
 func listPipelines(database *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var pipelines []db.Pipeline

@@ -3,16 +3,16 @@ package api
 import (
 	"net/http"
 
+	_ "github.com/0xdaksh/forge/docs"
 	"github.com/0xdaksh/forge/internal/config"
 	"github.com/0xdaksh/forge/internal/engine"
 	"github.com/0xdaksh/forge/internal/stream"
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"gorm.io/gorm"
 )
-
-
 
 // NewRouter wires all HTTP routes and returns the root handler.
 func NewRouter(database *gorm.DB, hub *stream.Hub, orch *engine.Orchestrator, cfg *config.Config) http.Handler {
@@ -53,6 +53,9 @@ func NewRouter(database *gorm.DB, hub *stream.Hub, orch *engine.Orchestrator, cf
 		r.Get("/api/v1/health", handleHealth(database))
 		r.Get("/api/v1/stats", handleStats(database, orch))
 		r.Handle("/metrics", promhttp.Handler())
+		r.Get("/swagger/*", httpSwagger.Handler(
+			httpSwagger.URL("/swagger/doc.json"),
+		))
 
 
 	})

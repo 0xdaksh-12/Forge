@@ -27,6 +27,23 @@ func init() {
 }
 
 
+// @title Forge API
+// @version 1.0
+// @description Self-hosted, Docker-powered CI/CD System.
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name Daksh Jha
+// @contact.url https://github.com/0xdaksh-12
+
+// @license.name Apache 2.0
+// @license.url https://opensource.org/licenses/Apache-2.0
+
+// @host localhost:8080
+// @BasePath /api/v1
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name X-Forge-Token
+
 func main() {
 	cfg := config.Load()
 

@@ -1,0 +1,225 @@
+basePath: /api/v1
+definitions:
+  github_com_0xdaksh_forge_internal_db.Build:
+    properties:
+      authorName:
+        type: string
+      branch:
+        type: string
+      commitMsg:
+        type: string
+      commitSHA:
+        type: string
+      createdAt:
+        type: string
+      deletedAt:
+        $ref: '#/definitions/gorm.DeletedAt'
+      finishedAt:
+        type: string
+      id:
+        type: integer
+      jobs:
+        items:
+          $ref: '#/definitions/github_com_0xdaksh_forge_internal_db.Job'
+        type: array
+      pipeline:
+        $ref: '#/definitions/github_com_0xdaksh_forge_internal_db.Pipeline'
+      pipelineID:
+        type: integer
+      startedAt:
+        type: string
+      status:
+        $ref: '#/definitions/github_com_0xdaksh_forge_internal_db.BuildStatus'
+      trigger:
+        $ref: '#/definitions/github_com_0xdaksh_forge_internal_db.TriggerType'
+      updatedAt:
+        type: string
+    type: object
+  github_com_0xdaksh_forge_internal_db.BuildStatus:
+    enum:
+    - pending
+    - running
+    - success
+    - failed
+    - cancelled
+    type: string
+    x-enum-varnames:
+    - BuildStatusPending
+    - BuildStatusRunning
+    - BuildStatusSuccess
+    - BuildStatusFailed
+    - BuildStatusCancelled
+  github_com_0xdaksh_forge_internal_db.Job:
+    properties:
+      build:
+        $ref: '#/definitions/github_com_0xdaksh_forge_internal_db.Build'
+      buildID:
+        type: integer
+      containerID:
+        type: string
+      createdAt:
+        type: string
+      deletedAt:
+        $ref: '#/definitions/gorm.DeletedAt'
+      exitCode:
+        type: integer
+      finishedAt:
+        type: string
+      id:
+        type: integer
+      image:
+        type: string
+      logs:
+        items:
+          $ref: '#/definitions/github_com_0xdaksh_forge_internal_db.LogLine'
+        type: array
+      name:
+        type: string
+      startedAt:
+        type: string
+      status:
+        $ref: '#/definitions/github_com_0xdaksh_forge_internal_db.JobStatus'
+      updatedAt:
+        type: string
+    type: object
+  github_com_0xdaksh_forge_internal_db.JobStatus:
+    enum:
+    - pending
+    - running
+    - success
+    - failed
+    - skipped
+    type: string
+    x-enum-varnames:
+    - JobStatusPending
+    - JobStatusRunning
+    - JobStatusSuccess
+    - JobStatusFailed
+    - JobStatusSkipped
+  github_com_0xdaksh_forge_internal_db.LogLine:
+    properties:
+      id:
+        type: integer
+      jobID:
+        type: integer
+      seq:
+        type: integer
+      stream:
+        description: '"stdout" or "stderr"'
+        type: string
+      text:
+        type: string
+      timestamp:
+        type: string
+    type: object
+  github_com_0xdaksh_forge_internal_db.Pipeline:
+    properties:
+      builds:
+        items:
+          $ref: '#/definitions/github_com_0xdaksh_forge_internal_db.Build'
+        type: array
+      configPath:
+        type: string
+      createdAt:
+        type: string
+      defaultBranch:
+        type: string
+      deletedAt:
+        $ref: '#/definitions/gorm.DeletedAt'
+      gitHubRepo:
+        description: '"owner/repo"'
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      repoURL:
+        type: string
+      updatedAt:
+        type: string
+      webhookSecret:
+        type: string
+    type: object
+  github_com_0xdaksh_forge_internal_db.TriggerType:
+    enum:
+    - push
+    - pull_request
+    - manual
+    type: string
+    x-enum-varnames:
+    - TriggerPush
+    - TriggerPR
+    - TriggerManual
+  gorm.DeletedAt:
+    properties:
+      time:
+        type: string
+      valid:
+        description: Valid is true if Time is not NULL
+        type: boolean
+    type: object
+host: localhost:8080
+info:
+  contact:
+    name: Daksh Jha
+    url: https://github.com/0xdaksh-12
+  description: Self-hosted, Docker-powered CI/CD System.
+  license:
+    name: Apache 2.0
+    url: https://opensource.org/licenses/Apache-2.0
+  termsOfService: http://swagger.io/terms/
+  title: Forge API
+  version: "1.0"
+paths:
+  /health:
+    get:
+      description: Check if the service and database are reachable
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check
+      tags:
+      - System
+  /pipelines:
+    get:
+      description: Retrieve all registered pipelines
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_0xdaksh_forge_internal_db.Pipeline'
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: List pipelines
+      tags:
+      - Pipelines
+  /stats:
+    get:
+      description: Get counts of pipelines, builds, and queue status
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: System statistics
+      tags:
+      - System
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: X-Forge-Token
+    type: apiKey
+swagger: "2.0"

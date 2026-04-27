@@ -1,0 +1,330 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Self-hosted, Docker-powered CI/CD System.",
+        "title": "Forge API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "Daksh Jha",
+            "url": "https://github.com/0xdaksh-12"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "https://opensource.org/licenses/Apache-2.0"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/api/v1",
+    "paths": {
+        "/health": {
+            "get": {
+                "description": "Check if the service and database are reachable",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "Health check",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/pipelines": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Retrieve all registered pipelines",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Pipelines"
+                ],
+                "summary": "List pipelines",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_0xdaksh_forge_internal_db.Pipeline"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/stats": {
+            "get": {
+                "description": "Get counts of pipelines, builds, and queue status",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "System statistics",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "github_com_0xdaksh_forge_internal_db.Build": {
+            "type": "object",
+            "properties": {
+                "authorName": {
+                    "type": "string"
+                },
+                "branch": {
+                    "type": "string"
+                },
+                "commitMsg": {
+                    "type": "string"
+                },
+                "commitSHA": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "deletedAt": {
+                    "$ref": "#/definitions/gorm.DeletedAt"
+                },
+                "finishedAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "jobs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_0xdaksh_forge_internal_db.Job"
+                    }
+                },
+                "pipeline": {
+                    "$ref": "#/definitions/github_com_0xdaksh_forge_internal_db.Pipeline"
+                },
+                "pipelineID": {
+                    "type": "integer"
+                },
+                "startedAt": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/github_com_0xdaksh_forge_internal_db.BuildStatus"
+                },
+                "trigger": {
+                    "$ref": "#/definitions/github_com_0xdaksh_forge_internal_db.TriggerType"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xdaksh_forge_internal_db.BuildStatus": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "running",
+                "success",
+                "failed",
+                "cancelled"
+            ],
+            "x-enum-varnames": [
+                "BuildStatusPending",
+                "BuildStatusRunning",
+                "BuildStatusSuccess",
+                "BuildStatusFailed",
+                "BuildStatusCancelled"
+            ]
+        },
+        "github_com_0xdaksh_forge_internal_db.Job": {
+            "type": "object",
+            "properties": {
+                "build": {
+                    "$ref": "#/definitions/github_com_0xdaksh_forge_internal_db.Build"
+                },
+                "buildID": {
+                    "type": "integer"
+                },
+                "containerID": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "deletedAt": {
+                    "$ref": "#/definitions/gorm.DeletedAt"
+                },
+                "exitCode": {
+                    "type": "integer"
+                },
+                "finishedAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "logs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_0xdaksh_forge_internal_db.LogLine"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "startedAt": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/github_com_0xdaksh_forge_internal_db.JobStatus"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xdaksh_forge_internal_db.JobStatus": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "running",
+                "success",
+                "failed",
+                "skipped"
+            ],
+            "x-enum-varnames": [
+                "JobStatusPending",
+                "JobStatusRunning",
+                "JobStatusSuccess",
+                "JobStatusFailed",
+                "JobStatusSkipped"
+            ]
+        },
+        "github_com_0xdaksh_forge_internal_db.LogLine": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "jobID": {
+                    "type": "integer"
+                },
+                "seq": {
+                    "type": "integer"
+                },
+                "stream": {
+                    "description": "\"stdout\" or \"stderr\"",
+                    "type": "string"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xdaksh_forge_internal_db.Pipeline": {
+            "type": "object",
+            "properties": {
+                "builds": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_0xdaksh_forge_internal_db.Build"
+                    }
+                },
+                "configPath": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "defaultBranch": {
+                    "type": "string"
+                },
+                "deletedAt": {
+                    "$ref": "#/definitions/gorm.DeletedAt"
+                },
+                "gitHubRepo": {
+                    "description": "\"owner/repo\"",
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "repoURL": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "webhookSecret": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_0xdaksh_forge_internal_db.TriggerType": {
+            "type": "string",
+            "enum": [
+                "push",
+                "pull_request",
+                "manual"
+            ],
+            "x-enum-varnames": [
+                "TriggerPush",
+                "TriggerPR",
+                "TriggerManual"
+            ]
+        },
+        "gorm.DeletedAt": {
+            "type": "object",
+            "properties": {
+                "time": {
+                    "type": "string"
+                },
+                "valid": {
+                    "description": "Valid is true if Time is not NULL",
+                    "type": "boolean"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "type": "apiKey",
+            "name": "X-Forge-Token",
+            "in": "header"
+        }
+    }
+}

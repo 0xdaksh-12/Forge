@@ -27,9 +27,13 @@ web:
 test:
 	go test ./... -v -count=1
 
-# Lint 
+# Lint
 lint:
-	go vet ./...
+	golangci-lint run ./...
+
+# Swagger
+swagger:
+	swag init -g cmd/forge/main.go
 
 #  Clean 
 clean:

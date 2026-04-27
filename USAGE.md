@@ -145,3 +145,27 @@ Forge exports several custom metrics to help you monitor build health:
     - Name: `Prometheus`
     - URL: `http://prometheus:9090`
 3.  Create a **New Dashboard** and add a graph with the query `forge_active_builds`.
+
+---
+
+## 7. API Documentation (Swagger)
+
+Forge provides interactive API documentation via Swagger UI.
+
+- **Access UI**: [http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html)
+- **JSON Spec**: [http://localhost:8080/swagger/doc.json](http://localhost:8080/swagger/doc.json)
+
+You can use the "Authorize" button in the UI to add your `X-Forge-Token` and test API endpoints directly from the browser.
+
+---
+
+## 8. Code Quality (Linting)
+
+Forge uses `golangci-lint` to maintain high code standards.
+
+### Running Linters Locally
+If you have `golangci-lint` installed, you can run:
+```bash
+golangci-lint run
+```
+This will check for style consistency, potential bugs, and performance issues using the rules defined in `.golangci.yml`.

@@ -64,11 +64,16 @@ func Recovery(next http.Handler) http.Handler {
 	})
 }
 
-// authMiddleware validates the X-Forge-Token header.
+// authMiddleware validates the X-Forge-Token header or 'token' query parameter.
 func authMiddleware(token string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.Header.Get("X-Forge-Token") != token {
+			received := r.Header.Get("X-Forge-Token")
+			if received == "" {
+				received = r.URL.Query().Get("token")
+			}
+
+			if received != token {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}

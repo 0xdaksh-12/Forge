@@ -29,7 +29,7 @@ export function Dashboard() {
     load();
 
     // Connect to real-time build event stream
-    const es = new EventSource("/api/v1/builds/events");
+    const es = new EventSource(api.events.buildsUrl());
 
     es.onmessage = (e) => {
       console.log("Real-time update received:", e.data);

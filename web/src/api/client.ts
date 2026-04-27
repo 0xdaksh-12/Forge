@@ -3,7 +3,7 @@
 // and the embedded static server in production.
 
 const BASE = import.meta.env.VITE_API_BASE ?? "";
-const TOKEN = import.meta.env.VITE_API_TOKEN ?? "forge-secret";
+export const TOKEN = import.meta.env.VITE_API_TOKEN ?? "forge-secret";
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
@@ -129,4 +129,10 @@ export const api = {
         body: JSON.stringify({ branch }),
       }),
   },
+  events: {
+    buildsUrl: () => `${BASE}/api/v1/builds/events?token=${TOKEN}`,
+    jobLogsUrl: (jobId: number) =>
+      `${BASE}/api/v1/jobs/${jobId}/logs/stream?token=${TOKEN}`,
+  },
 };
+

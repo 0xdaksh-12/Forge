@@ -21,7 +21,7 @@ export function LogViewer({ jobId, running }: Props) {
     let cancelled = false;
 
     if (running) {
-      es = new EventSource(api.jobs.streamUrl(jobId));
+      es = new EventSource(api.events.jobLogsUrl(jobId));
       es.onmessage = (e) => {
         if (cancelled) return;
         try {

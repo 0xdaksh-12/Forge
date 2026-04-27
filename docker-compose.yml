@@ -16,8 +16,8 @@ services:
   prometheus:
     image: prom/prometheus:latest
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--log.level=warn'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--log.level=warn"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
@@ -28,11 +28,14 @@ services:
     image: grafana/grafana:latest
     ports:
       - "3000:3000"
+    user: "0" # Run as root to fix permission issues with bundled plugins
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_LOG_LEVEL=warn
+      - GF_LOG_LEVEL=error
+    volumes:
+      - grafana-data:/var/lib/grafana
     restart: unless-stopped
 
 volumes:
   forge-data:
-
+  grafana-data:

@@ -1,0 +1,9 @@
+node_modules
+web/node_modules
+bin
+forge
+data
+.git
+.pnpm-store
+dist
+web/dist

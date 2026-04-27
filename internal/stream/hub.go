@@ -14,22 +14,35 @@ type LogEvent struct {
 	Text   string
 }
 
+// BuildEvent carries a status update for a build.
+type BuildEvent struct {
+	Type    string `json:"type"` // "build.started", "build.finished", "build.updated"
+	BuildID uint   `json:"build_id"`
+	Status  string `json:"status"`
+}
+
 // Hub routes log events to SSE subscribers keyed by job ID.
 type Hub struct {
-	mu          sync.RWMutex
-	subscribers map[uint][]chan LogEvent
-	broadcast   chan LogEvent
-	quit        chan struct{}
+	mu           sync.RWMutex
+	subscribers  map[uint][]chan LogEvent
+	buildSubs    []chan BuildEvent
+	broadcast    chan LogEvent
+	buildUpdates chan BuildEvent
+	quit         chan struct{}
 }
+
 
 // NewHub creates a ready-to-use Hub. Call Run in a goroutine.
 func NewHub() *Hub {
 	return &Hub{
-		subscribers: make(map[uint][]chan LogEvent),
-		broadcast:   make(chan LogEvent, 1024),
-		quit:        make(chan struct{}),
+		subscribers:  make(map[uint][]chan LogEvent),
+		buildSubs:    make([]chan BuildEvent, 0),
+		broadcast:    make(chan LogEvent, 1024),
+		buildUpdates: make(chan BuildEvent, 128),
+		quit:         make(chan struct{}),
 	}
 }
+
 
 // Run dispatches incoming events to subscribers. Run this in a goroutine.
 func (h *Hub) Run() {
@@ -40,15 +53,27 @@ func (h *Hub) Run() {
 			for _, ch := range h.subscribers[evt.JobID] {
 				select {
 				case ch <- evt:
-				default: // drop if the consumer is too slow
+				default:
 				}
 			}
 			h.mu.RUnlock()
+
+		case evt := <-h.buildUpdates:
+			h.mu.RLock()
+			for _, ch := range h.buildSubs {
+				select {
+				case ch <- evt:
+				default:
+				}
+			}
+			h.mu.RUnlock()
+
 		case <-h.quit:
 			return
 		}
 	}
 }
+
 
 // Stop shuts down the hub's dispatch loop.
 func (h *Hub) Stop() { close(h.quit) }
@@ -83,6 +108,36 @@ func (h *Hub) Unsubscribe(jobID uint, ch chan LogEvent) {
 	}
 	if len(h.subscribers[jobID]) == 0 {
 		delete(h.subscribers, jobID)
+	}
+	close(ch)
+}
+
+// PublishBuildEvent enqueues a build update for global broadcast.
+func (h *Hub) PublishBuildEvent(evt BuildEvent) {
+	select {
+	case h.buildUpdates <- evt:
+	default:
+	}
+}
+
+// SubscribeBuilds registers a subscriber for global build events.
+func (h *Hub) SubscribeBuilds() chan BuildEvent {
+	ch := make(chan BuildEvent, 64)
+	h.mu.Lock()
+	h.buildSubs = append(h.buildSubs, ch)
+	h.mu.Unlock()
+	return ch
+}
+
+// UnsubscribeBuilds removes a global build event subscriber.
+func (h *Hub) UnsubscribeBuilds(ch chan BuildEvent) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for i, s := range h.buildSubs {
+		if s == ch {
+			h.buildSubs = append(h.buildSubs[:i], h.buildSubs[i+1:]...)
+			break
+		}
 	}
 	close(ch)
 }

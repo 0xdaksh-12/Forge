@@ -27,8 +27,20 @@ export function Dashboard() {
 
   useEffect(() => {
     load();
-    const id = setInterval(load, 5000);
-    return () => clearInterval(id);
+
+    // Connect to real-time build event stream
+    const es = new EventSource("/api/v1/builds/events");
+
+    es.onmessage = (e) => {
+      console.log("Real-time update received:", e.data);
+      load(); // Refresh the list when any build changes
+    };
+
+    es.onerror = () => {
+      console.error("SSE connection failed, falling back to polling");
+    };
+
+    return () => es.close();
   }, [load]);
 
   const handleFilterChange = (val: BuildStatus | "") => {
@@ -45,7 +57,7 @@ export function Dashboard() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Dashboard</h1>
-          <p className="page-subtitle">Live build feed — refreshes every 5 s</p>
+          <p className="page-subtitle">Live real-time build feed</p>
         </div>
       </div>
 

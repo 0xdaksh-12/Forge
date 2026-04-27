@@ -10,7 +10,9 @@ import (
 	"github.com/0xdaksh/forge/internal/db"
 	"github.com/0xdaksh/forge/internal/stream"
 	"gorm.io/gorm"
+	"encoding/json"
 )
+
 
 // streamJobLogs handles GET /api/v1/jobs/{id}/logs/stream via Server-Sent Events.
 // The client receives one SSE event per log line until the job finishes.
@@ -101,6 +103,47 @@ func streamJobLogs(database *gorm.DB, hub *stream.Hub) http.HandlerFunc {
 					flusher.Flush()
 					return
 				}
+
+			case <-ctx.Done():
+				return
+			}
+		}
+	}
+}
+
+// streamBuildEvents handles GET /api/v1/builds/events via Server-Sent Events.
+func streamBuildEvents(hub *stream.Hub) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			http.Error(w, "streaming not supported", http.StatusInternalServerError)
+			return
+		}
+
+		ch := hub.SubscribeBuilds()
+		defer hub.UnsubscribeBuilds(ch)
+
+		ctx := r.Context()
+		ticker := time.NewTicker(20 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case evt, open := <-ch:
+				if !open {
+					return
+				}
+				data, _ := json.Marshal(evt)
+				fmt.Fprintf(w, "data: %s\n\n", string(data))
+				flusher.Flush()
+
+			case <-ticker.C:
+				fmt.Fprintf(w, ": ping\n\n")
+				flusher.Flush()
 
 			case <-ctx.Done():
 				return

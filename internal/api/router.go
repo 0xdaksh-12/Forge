@@ -41,6 +41,7 @@ func NewRouter(database *gorm.DB, hub *stream.Hub, orch *engine.Orchestrator, cf
 
 		// Builds
 		r.Get("/api/v1/builds", listBuilds(database))
+		r.Get("/api/v1/builds/events", streamBuildEvents(hub))
 		r.Get("/api/v1/builds/{id}", getBuild(database))
 		r.Post("/api/v1/builds/{id}/cancel", cancelBuild(database, orch))
 

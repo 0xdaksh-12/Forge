@@ -132,6 +132,11 @@ func (o *Orchestrator) processBuild(ctx context.Context, req BuildRequest) {
 	}
 
 	build.Pipeline = pipeline
+	o.hub.PublishBuildEvent(stream.BuildEvent{
+		Type:    "build.started",
+		BuildID: build.ID,
+		Status:  string(build.Status),
+	})
 
 	// Create Job records in topological order.
 	layers := TopologicalLayers(forgeCfg.Jobs)
@@ -197,7 +202,13 @@ func (o *Orchestrator) processBuild(ctx context.Context, req BuildRequest) {
 		"status":      finalStatus,
 		"finished_at": &finished,
 	})
+	o.hub.PublishBuildEvent(stream.BuildEvent{
+		Type:    "build.finished",
+		BuildID: build.ID,
+		Status:  string(finalStatus),
+	})
 }
+
 
 // runJob executes a single job, handling both container steps and deploy steps.
 func (o *Orchestrator) runJob(ctx context.Context, job *db.Job, build *db.Build, cfg *ForgeConfig) error {

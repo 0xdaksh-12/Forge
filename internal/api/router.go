@@ -50,16 +50,17 @@ func NewRouter(database *gorm.DB, hub *stream.Hub, orch *engine.Orchestrator, cf
 		r.Get("/api/v1/jobs/{id}/logs", getJobLogs(database))
 		r.Get("/api/v1/jobs/{id}/logs/stream", streamJobLogs(database, hub))
 
-		// Health + Metrics
-		r.Get("/api/v1/health", handleHealth(database))
+		// Stats + Docs
 		r.Get("/api/v1/stats", handleStats(database, orch))
-		r.Handle("/metrics", promhttp.Handler())
 		r.Get("/swagger/*", httpSwagger.Handler(
 			httpSwagger.URL("/swagger/doc.json"),
 		))
-
-
 	})
+
+	// Internal/Infra endpoints (No Auth)
+	r.Get("/api/v1/health", handleHealth(database))
+	r.Handle("/metrics", promhttp.Handler())
+
 
 	// Serve the React SPA from the embedded web/dist directory.
 	r.Handle("/*", http.FileServer(http.Dir("./web/dist")))

@@ -47,6 +47,17 @@ func NewDeployer(kubeconfigPath string) (*Deployer, error) {
 		if err != nil {
 			return nil, fmt.Errorf("kubeconfig: %w", err)
 		}
+
+		// Senior Fix: If we are in Docker and the server points to 127.0.0.1 (common with kind/minikube),
+		// we need to use host.docker.internal to reach the host's port.
+		if _, inDocker := os.LookupEnv("FORGE_DOCKER_SOCKET"); inDocker {
+			if strings.Contains(cfg.Host, "127.0.0.1") || strings.Contains(cfg.Host, "localhost") {
+				oldHost := cfg.Host
+				cfg.Host = strings.ReplaceAll(cfg.Host, "127.0.0.1", "host.docker.internal")
+				cfg.Host = strings.ReplaceAll(cfg.Host, "localhost", "host.docker.internal")
+				fmt.Printf("Kubernetes: Detected local cluster in Docker. Remapping %s -> %s\n", oldHost, cfg.Host)
+			}
+		}
 	}
 
 	dynClient, err := dynamic.NewForConfig(cfg)

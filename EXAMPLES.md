@@ -201,4 +201,42 @@ jobs:
           else
             echo "No changes in Service A, skipping."
           fi
+
+## 8. Full Kubernetes Deployment
+
+Example showing how to use the built-in Kubernetes deployer with a manifest file.
+
+### `.forge.yml`
+```yaml
+name: k8s-deploy-demo
+jobs:
+  deploy:
+    deploy:
+      type: kubernetes
+      manifest: deploy/deployment.yaml
+      image_tag: ${{ git.sha }}
+```
+
+### `deploy/deployment.yaml`
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-app
+        image: my-registry.io/app:${{ git.sha }}
+        ports:
+        - containerPort: 8080
+```
 ```

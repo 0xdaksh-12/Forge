@@ -3,10 +3,11 @@
 Before you begin, ensure you have the following installed:
 
 - **Docker**: Required to run CI jobs and Forge itself via compose.
+- **Kubernetes (Optional)**: Required for deployment steps. [Kind](https://kind.sigs.k8s.io/) is recommended for local development.
 - **Go 1.23+**: Required if building/developing the backend manually.
-- **Node.js 20+ & pnpm**: Required for frontend development.
+- **Node.js 22+ & pnpm**: Required for frontend development.
 - **Make**: Used for build automation.
-- **Docker Socket Access**: Ensure your user has permissions to access `/var/run/docker.sock` (usually by being in the `docker` group).
+- **Docker Socket Access**: Ensure your user has permissions to access `/var/run/docker.sock`.
 
 ---
 
@@ -148,7 +149,41 @@ Forge exports several custom metrics to help you monitor build health:
 
 ---
 
-## 7. API Documentation (Swagger)
+## 7. Kubernetes Setup (Local Dev)
+
+Forge includes a built-in Kubernetes deployer. For local development, we recommend using **Kind**.
+
+### 1. Install Kind
+```bash
+# On Linux
+curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64
+chmod +x ./kind
+sudo mv ./kind /usr/local/bin/kind
+```
+
+### 2. Create a Cluster
+Ensure your cluster is running before starting Forge:
+```bash
+kind create cluster
+```
+
+### 3. Connect Forge to Kind
+Forge runs in Docker, so it needs to bridge the network to talk to the Kind API on your host.
+
+1.  **Mount Config**: Forge automatically mounts `~/.kube/config` via `docker-compose.yml`.
+2.  **Smart Remapping**: Forge detects if it's in a container and automatically remaps `127.0.0.1` in your Kubeconfig to `host.docker.internal` so it can reach the host gateway.
+3.  **Restart**: If you create a cluster while Forge is already running, you must restart Forge:
+    ```bash
+    docker compose restart forge
+    ```
+
+### 4. Verification
+Check the Forge logs for this line to confirm K8s is ready:
+`Kubernetes: Detected local cluster in Docker. Remapping 127.0.0.1 -> host.docker.internal`
+
+---
+
+## 8. API Documentation (Swagger)
 
 Forge provides interactive API documentation via Swagger UI.
 

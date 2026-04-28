@@ -14,6 +14,7 @@ import (
 	"github.com/0xdaksh/forge/internal/config"
 	"github.com/0xdaksh/forge/internal/db"
 	"github.com/0xdaksh/forge/internal/engine"
+	"github.com/0xdaksh/forge/internal/storage"
 	"github.com/0xdaksh/forge/internal/stream"
 )
 
@@ -66,8 +67,15 @@ func main() {
 	hub := stream.NewHub()
 	go hub.Run()
 
+	// S3 Client
+	s3Client, err := storage.NewS3Client(cfg.S3Endpoint, cfg.S3AccessKey, cfg.S3SecretKey, cfg.S3Bucket)
+	if err != nil {
+		slog.Warn("S3 artifacts disabled", "error", err)
+		s3Client = nil
+	}
+
 	// Orchestrator (starts worker pool)
-	orch := engine.NewOrchestrator(database, hub, cfg)
+	orch := engine.NewOrchestrator(database, hub, cfg, s3Client)
 	orch.Start()
 
 	// Register Prometheus metrics
@@ -75,7 +83,7 @@ func main() {
 
 
 	// HTTP server
-	router := api.NewRouter(database, hub, orch, cfg)
+	router := api.NewRouter(database, hub, orch, cfg, s3Client)
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
 		Handler:      router,

@@ -6,6 +6,7 @@ import (
 	_ "github.com/0xdaksh/forge/docs"
 	"github.com/0xdaksh/forge/internal/config"
 	"github.com/0xdaksh/forge/internal/engine"
+	"github.com/0xdaksh/forge/internal/storage"
 	"github.com/0xdaksh/forge/internal/stream"
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
@@ -15,7 +16,7 @@ import (
 )
 
 // NewRouter wires all HTTP routes and returns the root handler.
-func NewRouter(database *gorm.DB, hub *stream.Hub, orch *engine.Orchestrator, cfg *config.Config) http.Handler {
+func NewRouter(database *gorm.DB, hub *stream.Hub, orch *engine.Orchestrator, cfg *config.Config, s3Client *storage.S3Client) http.Handler {
 	r := chi.NewRouter()
 
 	// Global middleware
@@ -49,6 +50,7 @@ func NewRouter(database *gorm.DB, hub *stream.Hub, orch *engine.Orchestrator, cf
 		r.Get("/api/v1/builds/events", streamBuildEvents(hub))
 		r.Get("/api/v1/builds/{id}", getBuild(database))
 		r.Post("/api/v1/builds/{id}/cancel", cancelBuild(database, orch))
+		r.Get("/api/v1/builds/{id}/artifacts", listArtifacts(database, s3Client))
 
 		// Jobs + logs
 		r.Get("/api/v1/jobs/{id}", getJob(database))

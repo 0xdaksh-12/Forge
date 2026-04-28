@@ -19,6 +19,10 @@ type Config struct {
 	KubeconfigPath string
 	DataDir        string
 	MasterKey      string
+	S3Endpoint     string
+	S3AccessKey    string
+	S3SecretKey    string
+	S3Bucket       string
 }
 
 // Load reads configuration from environment variables, falling back to defaults.
@@ -35,6 +39,10 @@ func Load() *Config {
 		KubeconfigPath: getEnv("FORGE_KUBECONFIG", ""),
 		DataDir:        dataDir,
 		MasterKey:      masterKey,
+		S3Endpoint:     getEnv("FORGE_S3_ENDPOINT", "localhost:9000"),
+		S3AccessKey:    getEnv("FORGE_S3_ACCESS_KEY", "forge-admin"),
+		S3SecretKey:    getEnv("FORGE_S3_SECRET_KEY", "forge-super-secret"),
+		S3Bucket:       getEnv("FORGE_S3_BUCKET", "forge-artifacts"),
 	}
 }
 

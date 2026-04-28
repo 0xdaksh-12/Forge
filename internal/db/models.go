@@ -39,6 +39,17 @@ type Pipeline struct {
 	WebhookSecret string
 	GitHubRepo    string  // "owner/repo"
 	Builds        []Build `gorm:"foreignKey:PipelineID"`
+	Secrets       []Secret `gorm:"foreignKey:PipelineID"`
+}
+
+// Secret stores an encrypted environment variable for a pipeline.
+type Secret struct {
+	gorm.Model
+	PipelineID uint   `gorm:"index;not null;uniqueIndex:idx_pipeline_secret_name"`
+	Pipeline   Pipeline `gorm:"constraint:OnDelete:CASCADE"`
+	Name       string `gorm:"not null;uniqueIndex:idx_pipeline_secret_name"`
+	Ciphertext string `gorm:"not null"`
+	Nonce      string `gorm:"not null"`
 }
 
 // Build is a single triggered execution of a pipeline.

@@ -43,7 +43,7 @@ type Orchestrator struct {
 
 // NewOrchestrator constructs an Orchestrator. Call Start() to begin processing.
 func NewOrchestrator(database *gorm.DB, hub *stream.Hub, cfg *config.Config) *Orchestrator {
-	runner, err := NewRunner(cfg.DockerSocket, database, hub, cfg.DataDir)
+	runner, err := NewRunner(cfg.DockerSocket, database, hub, cfg.DataDir, cfg.MasterKey)
 	if err != nil {
 		slog.Error("docker runner initialization failed", "error", err)
 		os.Exit(1)

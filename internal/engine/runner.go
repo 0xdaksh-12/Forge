@@ -15,6 +15,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
+	"github.com/0xdaksh/forge/internal/crypto"
 	"github.com/0xdaksh/forge/internal/db"
 	"github.com/0xdaksh/forge/internal/stream"
 	"gorm.io/gorm"
@@ -23,14 +24,15 @@ import (
 
 // Runner executes jobs in isolated Docker containers.
 type Runner struct {
-	docker  *client.Client
-	database *gorm.DB
-	hub     *stream.Hub
-	dataDir string
+	docker    *client.Client
+	database  *gorm.DB
+	hub       *stream.Hub
+	dataDir   string
+	masterKey string
 }
 
 // NewRunner creates a Docker runner connected to the local Docker daemon.
-func NewRunner(dockerHost string, database *gorm.DB, hub *stream.Hub, dataDir string) (*Runner, error) {
+func NewRunner(dockerHost string, database *gorm.DB, hub *stream.Hub, dataDir, masterKey string) (*Runner, error) {
 	cli, err := client.NewClientWithOpts(
 		client.WithHost(dockerHost),
 		client.WithAPIVersionNegotiation(),
@@ -38,7 +40,7 @@ func NewRunner(dockerHost string, database *gorm.DB, hub *stream.Hub, dataDir st
 	if err != nil {
 		return nil, fmt.Errorf("docker client: %w", err)
 	}
-	return &Runner{docker: cli, database: database, hub: hub, dataDir: dataDir}, nil
+	return &Runner{docker: cli, database: database, hub: hub, dataDir: dataDir, masterKey: masterKey}, nil
 }
 
 // RunJob clones the repo, executes all steps in a container, and persists logs.
@@ -57,6 +59,18 @@ func (r *Runner) RunJob(ctx context.Context, job *db.Job, build *db.Build, cfg *
 	// Merge global env
 	for k, v := range cfg.Env {
 		templateVars["env."+k] = v
+	}
+
+	// Fetch and decrypt secrets for this pipeline
+	var secrets []db.Secret
+	if err := r.database.Where("pipeline_id = ?", build.PipelineID).Find(&secrets).Error; err == nil {
+		for _, s := range secrets {
+			if plaintext, err := crypto.Decrypt(s.Ciphertext, s.Nonce, r.masterKey); err == nil {
+				templateVars["secrets."+s.Name] = plaintext
+			} else {
+				r.emitLog(job.ID, 0, "stderr", fmt.Sprintf("⚠️ Failed to decrypt secret %s", s.Name))
+			}
+		}
 	}
 
 	// 1. Clone the repo into a temporary workspace directory.

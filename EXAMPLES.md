@@ -50,11 +50,9 @@ jobs:
         run: npm ci
       - name: Build production bundle
         run: npm run build
-      - name: Upload to S3
-        run: aws s3 sync dist/ s3://my-dashboard-bucket --delete
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET }}
+    artifacts:
+      - "dist/*"
+      - "package.json"
 ```
 
 ## 3. Python (FastAPI)
@@ -117,6 +115,7 @@ jobs:
 | `jobs.<id>.needs`  | List of job IDs that must finish successfully first. |
 | `jobs.<id>.image`  | The Docker image to run the job in.                  |
 | `jobs.<id>.steps`  | List of sequential shell commands.                   |
+| `jobs.<id>.artifacts`| List of glob patterns for files to save to S3.       |
 | `jobs.<id>.deploy` | Kubernetes deployment configuration.                 |
 
 ## 5. Multi-Job DAG with Deployment
@@ -180,6 +179,8 @@ jobs:
     steps:
       - name: Build Release
         run: cargo build --release
+    artifacts:
+      - "target/release/my-app"
 ```
 
 ## 7. Monorepo (Path Filtering)

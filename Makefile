@@ -33,7 +33,7 @@ lint:
 
 # Swagger
 swagger:
-	swag init -g cmd/forge/main.go
+	swag init -g cmd/forge/main.go --parseDependency --parseInternal
 
 #  Clean 
 clean:

@@ -4,7 +4,7 @@
 > Trigger builds from Git events, execute jobs in isolated containers, and deploy to Kubernetes with ease.
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/0xdaksh-12/Forge)](https://goreportcard.com/report/github.com/0xdaksh-12/Forge)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![License](https://img.shields.io/badge/license-Apache-blue.svg)
 
 ---
 
@@ -15,6 +15,7 @@
 - **Isolated Docker Execution** — Every job runs in a clean, disposable container.
 - **DAG-based Pipelines** — Orchestrate complex workflows with job dependencies (`needs:`).
 - **Kubernetes Native** — Built-in support for manifest deployment with automatic image tagging.
+- **Artifact Storage** — Automatically persist build outputs (binaries, reports) and download securely via S3.
 - **Secure by Default** — HMAC-SHA256 webhook validation and token-based API auth.
 - **Modern Dashboard** — Sleek dark-mode UI built with React and Material Design.
 
@@ -88,7 +89,9 @@ jobs:
         run: |
           docker build -t registry.io/app:${{ git.sha }} .
           docker push registry.io/app:${{ git.sha }}
-
+          echo "Done!" > build-report.txt
+    artifacts:
+      - "build-report.txt"
   deploy:
     needs: [build]
     deploy:

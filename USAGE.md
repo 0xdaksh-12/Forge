@@ -149,7 +149,34 @@ Forge exports several custom metrics to help you monitor build health:
 
 ---
 
-## 7. Kubernetes Setup (Local Dev)
+## 7. Artifact Storage (MinIO)
+
+Forge includes a built-in MinIO server to persist build artifacts securely.
+
+### Defining Artifacts
+You can persist build outputs (binaries, test reports) by defining an `artifacts` array in your `.forge.yml` using glob patterns:
+
+```yaml
+jobs:
+  build:
+    image: node:20-alpine
+    steps:
+      - name: Build
+        run: npm run build
+    artifacts:
+      - "dist/*"
+      - "coverage.json"
+```
+
+### Accessing Artifacts
+After a job completes, its artifacts are automatically extracted from the isolated container and uploaded to MinIO. 
+1. Navigate to the **Build Detail** page for your pipeline.
+2. Scroll to the **ARTIFACTS** section.
+3. Click the download icon to fetch the file via a secure, time-limited S3 pre-signed URL.
+
+---
+
+## 8. Kubernetes Setup (Local Dev)
 
 Forge includes a built-in Kubernetes deployer. For local development, we recommend using **Kind**.
 
@@ -183,7 +210,7 @@ Check the Forge logs for this line to confirm K8s is ready:
 
 ---
 
-## 8. API Documentation (Swagger)
+## 9. API Documentation (Swagger)
 
 Forge provides interactive API documentation via Swagger UI.
 
@@ -194,7 +221,7 @@ You can use the "Authorize" button in the UI to add your `X-Forge-Token` and tes
 
 ---
 
-## 8. Code Quality (Linting)
+## 10. Code Quality (Linting)
 
 Forge uses `golangci-lint` to maintain high code standards.
 
@@ -207,7 +234,7 @@ This will check for style consistency, potential bugs, and performance issues us
 
 ---
 
-## 9. Troubleshooting
+## 11. Troubleshooting
 
 ### Build stays in "Pending"
 - Ensure the Forge server has enough resources.

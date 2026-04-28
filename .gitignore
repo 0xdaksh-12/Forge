@@ -1,0 +1,15 @@
+# Binaries
+/bin/
+
+# Data directory (database, master keys, workspaces)
+/data/
+
+# Mac OS
+.DS_Store
+
+# Frontend
+/web/node_modules/
+/web/dist/
+
+# Go
+/vendor/

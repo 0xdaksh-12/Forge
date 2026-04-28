@@ -60,6 +60,10 @@ func (r *Runner) RunJob(ctx context.Context, job *db.Job, build *db.Build, cfg *
 	for k, v := range cfg.Env {
 		templateVars["env."+k] = v
 	}
+	// Merge matrix variables
+	for k, v := range jobCfg.MatrixVars {
+		templateVars["matrix."+k] = v
+	}
 
 	// Fetch and decrypt secrets for this pipeline
 	var secrets []db.Secret

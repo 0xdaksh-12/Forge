@@ -5,6 +5,7 @@ package engine
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -31,11 +32,13 @@ type PushConfig struct {
 
 // JobConfig represents one job in the pipeline.
 type JobConfig struct {
-	Image  string            `yaml:"image"`
-	Needs  []string          `yaml:"needs"`
-	Env    map[string]string `yaml:"env"`
-	Steps  []StepConfig      `yaml:"steps"`
-	Deploy *DeployConfig     `yaml:"deploy"`
+	Image      string              `yaml:"image"`
+	Needs      []string            `yaml:"needs"`
+	Env        map[string]string   `yaml:"env"`
+	Matrix     map[string][]string `yaml:"matrix"`
+	MatrixVars map[string]string   `yaml:"-"`
+	Steps      []StepConfig        `yaml:"steps"`
+	Deploy     *DeployConfig       `yaml:"deploy"`
 }
 
 // StepConfig is a single shell step within a job.
@@ -68,6 +71,7 @@ func ParseConfigBytes(data []byte) (*ForgeConfig, error) {
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("parse yaml: %w", err)
 	}
+	cfg.Jobs = ExpandMatrices(cfg.Jobs)
 	if err := validateConfig(&cfg); err != nil {
 		return nil, err
 	}
@@ -166,4 +170,126 @@ func SubstituteVars(s string, vars map[string]string) string {
 		s = strings.ReplaceAll(s, "${{"+k+"}}", v)
 	}
 	return s
+}
+
+// copyJobConfig creates a deep copy of a JobConfig.
+func copyJobConfig(j JobConfig) JobConfig {
+	cp := JobConfig{
+		Image: j.Image,
+	}
+	if j.Needs != nil {
+		cp.Needs = append([]string{}, j.Needs...)
+	}
+	if j.Env != nil {
+		cp.Env = make(map[string]string, len(j.Env))
+		for k, v := range j.Env {
+			cp.Env[k] = v
+		}
+	}
+	if j.Matrix != nil {
+		cp.Matrix = make(map[string][]string, len(j.Matrix))
+		for k, v := range j.Matrix {
+			cp.Matrix[k] = append([]string{}, v...)
+		}
+	}
+	if j.MatrixVars != nil {
+		cp.MatrixVars = make(map[string]string, len(j.MatrixVars))
+		for k, v := range j.MatrixVars {
+			cp.MatrixVars[k] = v
+		}
+	}
+	if j.Steps != nil {
+		cp.Steps = make([]StepConfig, len(j.Steps))
+		for i, s := range j.Steps {
+			cp.Steps[i] = StepConfig{
+				Name: s.Name,
+				Run:  s.Run,
+			}
+			if s.Env != nil {
+				cp.Steps[i].Env = make(map[string]string, len(s.Env))
+				for k, v := range s.Env {
+					cp.Steps[i].Env[k] = v
+				}
+			}
+		}
+	}
+	if j.Deploy != nil {
+		cp.Deploy = &DeployConfig{
+			Type:      j.Deploy.Type,
+			Manifest:  j.Deploy.Manifest,
+			Namespace: j.Deploy.Namespace,
+			ImageTag:  j.Deploy.ImageTag,
+		}
+	}
+	return cp
+}
+
+// ExpandMatrices expands jobs with a matrix definition into multiple parallel jobs.
+func ExpandMatrices(jobs map[string]JobConfig) map[string]JobConfig {
+	expandedJobs := make(map[string]JobConfig)
+	expansions := make(map[string][]string)
+
+	for name, jcfg := range jobs {
+		if len(jcfg.Matrix) == 0 {
+			expandedJobs[name] = jcfg
+			expansions[name] = []string{name}
+			continue
+		}
+
+		keys := make([]string, 0, len(jcfg.Matrix))
+		for k := range jcfg.Matrix {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
+		var generate func(idx int, currentVars map[string]string, currentSuffix string)
+		var generatedNames []string
+
+		generate = func(idx int, currentVars map[string]string, currentSuffix string) {
+			if idx == len(keys) {
+				newName := name
+				if currentSuffix != "" {
+					newName += currentSuffix
+				}
+				
+				newJob := copyJobConfig(jcfg)
+				newJob.Matrix = nil
+				newJob.MatrixVars = currentVars
+				
+				expandedJobs[newName] = newJob
+				generatedNames = append(generatedNames, newName)
+				return
+			}
+
+			k := keys[idx]
+			for _, v := range jcfg.Matrix[k] {
+				nextVars := make(map[string]string)
+				for mk, mv := range currentVars {
+					nextVars[mk] = mv
+				}
+				nextVars[k] = v
+				
+				suffix := currentSuffix + "-" + v
+				generate(idx+1, nextVars, suffix)
+			}
+		}
+
+		generate(0, make(map[string]string), "")
+		expansions[name] = generatedNames
+	}
+
+	for name, jcfg := range expandedJobs {
+		var newNeeds []string
+		for _, need := range jcfg.Needs {
+			if expanded, ok := expansions[need]; ok {
+				newNeeds = append(newNeeds, expanded...)
+			} else {
+				newNeeds = append(newNeeds, need)
+			}
+		}
+		jcfg.Needs = newNeeds
+		expandedJobs[name] = jcfg
+	}
+
+	return expandedJobs
 }

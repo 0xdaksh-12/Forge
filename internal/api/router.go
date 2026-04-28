@@ -39,6 +39,11 @@ func NewRouter(database *gorm.DB, hub *stream.Hub, orch *engine.Orchestrator, cf
 		r.Get("/api/v1/pipelines/{id}", getPipeline(database))
 		r.Delete("/api/v1/pipelines/{id}", deletePipeline(database))
 
+		// Secrets
+		r.Get("/api/v1/pipelines/{id}/secrets", listSecrets(database))
+		r.Put("/api/v1/pipelines/{id}/secrets", putSecret(database, cfg.MasterKey))
+		r.Delete("/api/v1/pipelines/{id}/secrets/{name}", deleteSecret(database))
+
 		// Builds
 		r.Get("/api/v1/builds", listBuilds(database))
 		r.Get("/api/v1/builds/events", streamBuildEvents(hub))

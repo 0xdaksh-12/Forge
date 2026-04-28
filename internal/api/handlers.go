@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/0xdaksh/forge/internal/crypto"
 	"github.com/0xdaksh/forge/internal/db"
 	"github.com/0xdaksh/forge/internal/engine"
 	"github.com/go-chi/chi/v5"
@@ -188,4 +189,75 @@ func getJobLogs(database *gorm.DB) http.HandlerFunc {
 func jsonOK(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(v)
+}
+
+// listSecrets returns secrets for a pipeline, omitting the ciphertext
+func listSecrets(database *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		pipelineID := chi.URLParam(r, "id")
+		var secrets []db.Secret
+		database.Select("id", "created_at", "updated_at", "pipeline_id", "name").
+			Where("pipeline_id = ?", pipelineID).
+			Order("name asc").
+			Find(&secrets)
+		jsonOK(w, secrets)
+	}
+}
+
+// putSecret encrypts and saves a secret for a pipeline
+func putSecret(database *gorm.DB, masterKey string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		pipelineIDStr := chi.URLParam(r, "id")
+		pipelineID, _ := strconv.ParseUint(pipelineIDStr, 10, 32)
+
+		var payload struct {
+			Name  string `json:"name"`
+			Value string `json:"value"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+		if payload.Name == "" || payload.Value == "" {
+			http.Error(w, "name and value are required", http.StatusBadRequest)
+			return
+		}
+
+		ciphertext, nonce, err := crypto.Encrypt(payload.Value, masterKey)
+		if err != nil {
+			http.Error(w, "encryption failed", http.StatusInternalServerError)
+			return
+		}
+
+		secret := db.Secret{
+			PipelineID: uint(pipelineID),
+			Name:       payload.Name,
+			Ciphertext: ciphertext,
+			Nonce:      nonce,
+		}
+
+		// Upsert based on PipelineID and Name
+		if err := database.Where("pipeline_id = ? AND name = ?", pipelineID, payload.Name).
+			Assign(db.Secret{Ciphertext: ciphertext, Nonce: nonce}).
+			FirstOrCreate(&secret).Error; err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusCreated)
+		jsonOK(w, map[string]string{"status": "saved", "name": secret.Name})
+	}
+}
+
+func deleteSecret(database *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		pipelineID := chi.URLParam(r, "id")
+		name := chi.URLParam(r, "name")
+
+		if err := database.Where("pipeline_id = ? AND name = ?", pipelineID, name).Delete(&db.Secret{}).Error; err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
 }

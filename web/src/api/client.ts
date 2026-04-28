@@ -80,6 +80,14 @@ export interface LogLine {
   Timestamp: string;
 }
 
+export interface Secret {
+  ID: number;
+  PipelineID: number;
+  Name: string;
+  CreatedAt: string;
+  UpdatedAt: string;
+}
+
 export const api = {
   pipelines: {
     list: () => request<Pipeline[]>("/api/v1/pipelines"),
@@ -97,6 +105,23 @@ export const api = {
         method: "DELETE",
         headers: { "X-Forge-Token": TOKEN },
       }),
+    secrets: {
+      list: (pipelineId: number) =>
+        request<Secret[]>(`/api/v1/pipelines/${pipelineId}/secrets`),
+      put: (pipelineId: number, name: string, value: string) =>
+        request<{ status: string; name: string }>(
+          `/api/v1/pipelines/${pipelineId}/secrets`,
+          {
+            method: "PUT",
+            body: JSON.stringify({ name, value }),
+          },
+        ),
+      delete: (pipelineId: number, name: string) =>
+        fetch(`${BASE}/api/v1/pipelines/${pipelineId}/secrets/${name}`, {
+          method: "DELETE",
+          headers: { "X-Forge-Token": TOKEN },
+        }),
+    },
   },
 
   builds: {

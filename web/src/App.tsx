@@ -4,6 +4,8 @@ import { Dashboard } from "./pages/Dashboard";
 import { Pipelines } from "./pages/Pipelines";
 import { BuildDetail } from "./pages/BuildDetail";
 
+import { PipelineDetail } from "./pages/PipelineDetail";
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -13,7 +15,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/pipelines" element={<Pipelines />} />
-            <Route path="/pipelines/:id" element={<Pipelines />} />
+            <Route path="/pipelines/:id" element={<PipelineDetail />} />
             <Route path="/builds/:id" element={<BuildDetail />} />
           </Routes>
         </main>

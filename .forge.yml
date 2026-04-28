@@ -6,13 +6,13 @@ on:
 
 jobs:
   lint:
-    image: golang:1.23-alpine
+    image: golang:1.24-alpine
     steps:
       - name: Vet
         run: go vet ./...
 
   test:
-    image: golang:1.23-alpine
+    image: golang:1.24-alpine
     needs: [lint]
     steps:
       - name: Run tests
@@ -27,7 +27,7 @@ jobs:
         run: cd web && pnpm build
 
   build-binary:
-    image: golang:1.23-alpine
+    image: golang:1.24-alpine
     needs: [test, build-web]
     steps:
       - name: Build

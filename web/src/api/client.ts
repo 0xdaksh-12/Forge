@@ -88,6 +88,16 @@ export interface Secret {
   UpdatedAt: string;
 }
 
+export interface Artifact {
+  ID: number;
+  BuildID: number;
+  JobID: number;
+  Job?: Job;
+  Path: string;
+  Size: number;
+  URL: string;
+}
+
 export const api = {
   pipelines: {
     list: () => request<Pipeline[]>("/api/v1/pipelines"),
@@ -139,6 +149,7 @@ export const api = {
       request<{ status: string }>(`/api/v1/builds/${id}/cancel`, {
         method: "POST",
       }),
+    artifacts: (id: number) => request<Artifact[]>(`/api/v1/builds/${id}/artifacts`),
   },
 
   jobs: {

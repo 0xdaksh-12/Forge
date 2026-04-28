@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 
 import { useParams, Link } from "react-router-dom";
-import { api, type Build, type Job } from "../api/client";
+import { api, type Build, type Job, type Artifact } from "../api/client";
 import { StatusBadge } from "../components/ui";
 import { duration, reltime, shortSha, triggerIcon } from "../components/utils";
 import { LogViewer } from "../components/LogViewer";
@@ -9,6 +9,7 @@ import { LogViewer } from "../components/LogViewer";
 export function BuildDetail() {
   const { id } = useParams<{ id: string }>();
   const [build, setBuild] = useState<Build | null>(null);
+  const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [openJob, setOpenJob] = useState<number | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
@@ -26,6 +27,10 @@ export function BuildDetail() {
           if (auto) setOpenJob(auto.ID);
         }
       })
+      .catch(() => {});
+    
+    api.builds.artifacts(Number(id))
+      .then(setArtifacts)
       .catch(() => {});
   }, [id, openJob]);
 
@@ -132,6 +137,36 @@ export function BuildDetail() {
             </div>
           )}
         </div>
+
+        {artifacts.length > 0 && (
+          <div style={{ marginTop: 32 }}>
+            <h2 className="text-sm text-muted font-mono" style={{ marginBottom: 16 }}>
+              ARTIFACTS
+            </h2>
+            <div className="grid gap-16" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+              {artifacts.map((artifact) => (
+                <div key={artifact.ID} className="card p-16 flex items-center justify-between" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }}>
+                  <div className="flex gap-12 items-center">
+                    <span className="material-icons text-muted">insert_drive_file</span>
+                    <div>
+                      <div className="font-mono text-sm">{artifact.Path}</div>
+                      <div className="text-xs text-muted">
+                        Job: {artifact.Job?.Name || `ID ${artifact.JobID}`} • {(artifact.Size / 1024).toFixed(2)} KB
+                      </div>
+                    </div>
+                  </div>
+                  {artifact.URL ? (
+                    <a href={artifact.URL} className="btn btn-sm" download>
+                      <span className="material-icons material-icons-inline">download</span>
+                    </a>
+                  ) : (
+                    <span className="text-xs text-muted">Unavailable</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

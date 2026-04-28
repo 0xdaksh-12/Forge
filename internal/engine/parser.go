@@ -39,6 +39,7 @@ type JobConfig struct {
 	MatrixVars map[string]string   `yaml:"-"`
 	Steps      []StepConfig        `yaml:"steps"`
 	Deploy     *DeployConfig       `yaml:"deploy"`
+	Artifacts  []string            `yaml:"artifacts"`
 }
 
 // StepConfig is a single shell step within a job.
@@ -220,6 +221,9 @@ func copyJobConfig(j JobConfig) JobConfig {
 			Namespace: j.Deploy.Namespace,
 			ImageTag:  j.Deploy.ImageTag,
 		}
+	}
+	if j.Artifacts != nil {
+		cp.Artifacts = append([]string{}, j.Artifacts...)
 	}
 	return cp
 }

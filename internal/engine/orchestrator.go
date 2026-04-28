@@ -14,6 +14,7 @@ import (
 
 	"github.com/0xdaksh/forge/internal/config"
 	"github.com/0xdaksh/forge/internal/db"
+	"github.com/0xdaksh/forge/internal/storage"
 	"github.com/0xdaksh/forge/internal/stream"
 	"gorm.io/gorm"
 )
@@ -42,8 +43,8 @@ type Orchestrator struct {
 }
 
 // NewOrchestrator constructs an Orchestrator. Call Start() to begin processing.
-func NewOrchestrator(database *gorm.DB, hub *stream.Hub, cfg *config.Config) *Orchestrator {
-	runner, err := NewRunner(cfg.DockerSocket, database, hub, cfg.DataDir, cfg.MasterKey)
+func NewOrchestrator(database *gorm.DB, hub *stream.Hub, cfg *config.Config, s3Client *storage.S3Client) *Orchestrator {
+	runner, err := NewRunner(cfg.DockerSocket, database, hub, cfg.DataDir, cfg.MasterKey, s3Client)
 	if err != nil {
 		slog.Error("docker runner initialization failed", "error", err)
 		os.Exit(1)

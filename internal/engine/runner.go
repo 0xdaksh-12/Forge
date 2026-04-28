@@ -17,6 +17,7 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/0xdaksh/forge/internal/crypto"
 	"github.com/0xdaksh/forge/internal/db"
+	"github.com/0xdaksh/forge/internal/storage"
 	"github.com/0xdaksh/forge/internal/stream"
 	"gorm.io/gorm"
 )
@@ -29,10 +30,11 @@ type Runner struct {
 	hub       *stream.Hub
 	dataDir   string
 	masterKey string
+	s3        *storage.S3Client
 }
 
 // NewRunner creates a Docker runner connected to the local Docker daemon.
-func NewRunner(dockerHost string, database *gorm.DB, hub *stream.Hub, dataDir, masterKey string) (*Runner, error) {
+func NewRunner(dockerHost string, database *gorm.DB, hub *stream.Hub, dataDir, masterKey string, s3 *storage.S3Client) (*Runner, error) {
 	cli, err := client.NewClientWithOpts(
 		client.WithHost(dockerHost),
 		client.WithAPIVersionNegotiation(),
@@ -40,7 +42,7 @@ func NewRunner(dockerHost string, database *gorm.DB, hub *stream.Hub, dataDir, m
 	if err != nil {
 		return nil, fmt.Errorf("docker client: %w", err)
 	}
-	return &Runner{docker: cli, database: database, hub: hub, dataDir: dataDir, masterKey: masterKey}, nil
+	return &Runner{docker: cli, database: database, hub: hub, dataDir: dataDir, masterKey: masterKey, s3: s3}, nil
 }
 
 // RunJob clones the repo, executes all steps in a container, and persists logs.
@@ -158,6 +160,34 @@ func (r *Runner) RunJob(ctx context.Context, job *db.Job, build *db.Build, cfg *
 			"status":      jobStatus,
 			"finished_at": &finished,
 		})
+
+		// Upload artifacts if configured
+		if r.s3 != nil && len(jobCfg.Artifacts) > 0 {
+			r.emitLog(job.ID, 0, "stdout", "▶ Uploading artifacts...")
+			for _, artifactPath := range jobCfg.Artifacts {
+				pattern := filepath.Join(workDir, artifactPath)
+				matches, err := filepath.Glob(pattern)
+				if err == nil {
+					for _, match := range matches {
+						if info, err := os.Stat(match); err == nil && !info.IsDir() {
+							_, size, err := r.s3.UploadArtifact(ctx, build.ID, job.ID, match)
+							if err == nil {
+								r.database.Create(&db.Artifact{
+									BuildID: build.ID,
+									JobID:   job.ID,
+									Path:    filepath.Base(match),
+									Size:    size,
+								})
+								r.emitLog(job.ID, 0, "stdout", fmt.Sprintf("✔ Uploaded artifact %s (%.2f KB)", filepath.Base(match), float64(size)/1024.0))
+							} else {
+								r.emitLog(job.ID, 0, "stderr", fmt.Sprintf("⚠️ Failed to upload artifact %s: %v", match, err))
+							}
+						}
+					}
+				}
+			}
+		}
+
 		if exitCode != 0 {
 			return fmt.Errorf("container exited with code %d", exitCode)
 		}

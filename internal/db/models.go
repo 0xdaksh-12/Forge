@@ -65,7 +65,8 @@ type Build struct {
 	Status     BuildStatus `gorm:"default:pending"`
 	StartedAt  *time.Time
 	FinishedAt *time.Time
-	Jobs       []Job `gorm:"foreignKey:BuildID"`
+	Jobs       []Job      `gorm:"foreignKey:BuildID"`
+	Artifacts  []Artifact `gorm:"foreignKey:BuildID"`
 }
 
 // Job is a single job within a build (maps to one Docker container).
@@ -80,7 +81,8 @@ type Job struct {
 	ExitCode    int        `gorm:"default:-1"`
 	StartedAt   *time.Time
 	FinishedAt  *time.Time
-	Logs        []LogLine `gorm:"foreignKey:JobID"`
+	Logs        []LogLine  `gorm:"foreignKey:JobID"`
+	Artifacts   []Artifact `gorm:"foreignKey:JobID"`
 }
 
 // LogLine is a single line of output from a job container.
@@ -91,4 +93,16 @@ type LogLine struct {
 	Stream    string    // "stdout" or "stderr"
 	Text      string
 	Timestamp time.Time
+}
+
+// Artifact stores metadata about files generated and saved by a build.
+type Artifact struct {
+	gorm.Model
+	BuildID uint   `gorm:"index;not null"`
+	Build   Build  `gorm:"constraint:OnDelete:CASCADE"`
+	JobID   uint   `gorm:"index;not null"`
+	Job     Job    `gorm:"constraint:OnDelete:CASCADE"`
+	Path    string `gorm:"not null"`
+	Size    int64
+	URL     string `gorm:"-"` // Ephemeral URL for downloading
 }

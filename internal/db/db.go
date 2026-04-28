@@ -41,7 +41,7 @@ func Init(dsn string) (*gorm.DB, error) {
 		}
 	}
 
-	if err := database.AutoMigrate(&Pipeline{}, &Secret{}, &Build{}, &Job{}, &LogLine{}); err != nil {
+	if err := database.AutoMigrate(&Pipeline{}, &Secret{}, &Build{}, &Job{}, &LogLine{}, &Artifact{}); err != nil {
 		return nil, fmt.Errorf("migrate: %w", err)
 	}
 
